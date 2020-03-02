@@ -1,23 +1,10 @@
-import pysftp
-import os
-from log import logger as mylogger
 from stat import *
+import pysftp
+import logging
+from inbound.utils import files as fileUtils
 
 
-def create_local_folder(folder):
-    # 폴더 존재하는지 판단 후 생성
-    if not os.path.exists(folder):
-        try:
-            os.makedirs(folder)
-            mylogger.info("Directory " + folder + " Created ")
-        except Exception as e:
-            mylogger.error("Directory " + folder +
-                           " Created ERROR MSG: " + e)
-            return False
-    return True
-
-
-class SSHSession(object):
+class SftpSession(object):
     # Usage:
     # Detects DSA or RSA from key_file, either as a string filename or a
     # file object.  Password auth is possible, but I will judge you for
@@ -37,18 +24,18 @@ class SSHSession(object):
         #  in either dss_key or rsa_key with a private key.  Since I don't
         #  ever intend to leave a server open to a password auth.
         #
-        self.logger = mylogger
+        # self.logger = mylogger
         self.local_directory = local_directory
         self.remote_directory = remote_directory
         self.remote_backup_directory = remote_backup_directory
-
+        self.logger = logging.getLogger('myLogger')
         try:
             self.sftp = pysftp.Connection(host=hostname, username=username, password=password,
                                           default_path=remote_directory)
         except Exception as e:
             self.logger.error(e)
 
-    def sftp_helper(self, sftp, files):
+    def file_list_helper(self, sftp, files):
         stats = sftp.listdir_attr('.')
         files[sftp.getcwd()] = [attr.filename for attr in stats if S_ISREG(attr.st_mode)]
 
@@ -59,17 +46,17 @@ class SSHSession(object):
                 self.sftp_helper(sftp, files)
                 sftp.chdir('..')
 
-    def filelist_recursive(self, target_dir):
-        self.sftp.cwd(target_dir)
+    def file_list_recursive(self):
+
         files = {}
-        self.sftp_helper(self.sftp, files)
+        self.file_list_helper(self.sftp, files)
         return files
 
     def get(self, remote, local, filename):
 
         self.sftp.get(remote + '/' + filename, local + '/' + filename, preserve_mtime=True)
 
-        if os.path.exists(local + '/' + filename):
+        if fileUtils.exist_local_file(local + '/' + filename):
             self.logger.info(filename + ' IS SAVE SUCCESS')
             self.backup_file(remote, filename)
         else:
@@ -79,23 +66,24 @@ class SSHSession(object):
 
         for folder, files in remote_list:
 
-            # 루트 디렉토리 문자열 제거.
-            target_folder = folder.replace(self.remote_directory, '')
+            self.logger.info("Get All Files, new file size: " + str(len(files)))
             # 폴더구조를 똑같이 복사하기 위한.
-            target_folder = self.local_directory + target_folder
+            # 루트 디렉토리 문자열 제거.
+            target_folder = self.local_directory + folder.replace(self.remote_directory, '')
+            # target_folder = self.local_directory + target_folder
 
             # 폴더 존재하는지 판단 후 생성
-            if create_local_folder(folder=target_folder):
+            if fileUtils.create_local_folder(folder=target_folder):
                 # 파일 모두 가져옴.
                 for file in files:
                     remote_file = folder + '/' + file
                     local_file = target_folder + '/' + file
 
                     # 로컬에 이미 파일이 존재한다면.
-                    if os.path.exists(local_file):
+                    if fileUtils.exist_local_file(local_file):
                         # 최종 수정시간 비교후 저장.
-                        if self.sftp.stat(remote_file).st_mtime > os.stat(local_file).st_mtime:
-                            self.get(remote=remote_file, local=local_file)
+                        if self.sftp.stat(remote_file).st_mtime > fileUtils.get_stat_file(local_file).st_mtime:
+                            self.get(remote=folder, local=target_folder, filename=file)
                     else:
                         self.get(remote=folder, local=target_folder, filename=file)
 
@@ -109,7 +97,7 @@ class SSHSession(object):
     def backup_file(self, target_directory, target_file):
 
         child_directory = target_directory.replace(self.remote_directory, '')
-        backup_directory = self.remote_directory + '/tmp'
+        backup_directory = self.remote_backup_directory
 
         # custom_make_dir(self.remote_directory + '/tmp', target_directory.replace(self.remote_directory, ''))
         # '/webstore/ns-home/newspaper/work/newswork/news-receiver-agent/data/osen/tmp/img/2020/02/28'
@@ -122,9 +110,13 @@ class SSHSession(object):
 
         # if not self.sftp.exists(backup_directory):
         #     self.sftp.mkdir(backup_directory)
-        print(self.remote_directory + child_directory + '/' + target_file)
-        print(backup_directory + '/' + target_file)
-        self.sftp.rename(self.remote_directory + child_directory + '/' + target_file,
-                         backup_directory + '/' + target_file)
+        # print(self.remote_directory + child_directory + '/' + target_file)
+        # print(backup_directory + '/' + target_file)
 
-    # def custom_make_dir(self, root, child):
+        remote_full_path = self.remote_directory + child_directory + '/' + target_file
+        backup_full_path = backup_directory + '/' + target_file
+        if self.exist_remote_directory(backup_full_path):
+            self.sftp.remove(backup_full_path)
+            self.sftp.rename(remote_full_path, backup_full_path)
+        else:
+            self.sftp.rename(remote_full_path, backup_full_path)
