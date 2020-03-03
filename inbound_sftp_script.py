@@ -1,19 +1,26 @@
 from datetime import datetime
-from inbound.config import ApplicationConfiguration
-from inbound import sftp
+# from inbound.config import ApplicationConfiguration
+# import config
+# from inbound.config import *
+# from inbound.sftp import *
 import configparser
 import logging
+import sys
+from inbound import config
+from inbound import sftp
 
 
 def main(target):
     env = configparser.ConfigParser()
-    env.read('./../env.ini')
+    env.read('env.ini')
 
     # print(config['DEFAULT']['WorkingPath'])
     # env = configparser.ConfigParser().read('env.ini')
-    env_obj = env['DEFAULT']    
-    configuration = ApplicationConfiguration(env=env_obj, target=target)
-    prop = configuration.properties
+    env_obj = env['DEFAULT']
+    # Logger Setting
+    config.Log(log_path=env_obj['ROOT_PATH'] + env_obj['LOG_PATH'])
+    # Properties Setting
+    prop = config.PropertiesGenerator(config_path=env_obj['ROOT_PATH'] + env_obj['CONFIG_PATH'], target=target)
 
     logger = logging.getLogger('myLogger')
     logger.info('start get file to : ' + target)
@@ -53,4 +60,5 @@ def main(target):
 
 
 if __name__ == '__main__':
-    main(target='osen')
+    # print('ttttttt'+sys.argv[1])
+    main(target=sys.argv[1])
