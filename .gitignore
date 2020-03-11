@@ -136,3 +136,7 @@ dmypy.json
 
 config/config.json
 env.ini
+
+get/
+
+.idea

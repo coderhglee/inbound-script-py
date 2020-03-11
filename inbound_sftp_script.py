@@ -1,64 +1,90 @@
 from datetime import datetime
-# from inbound.config import ApplicationConfiguration
-# import config
-# from inbound.config import *
-# from inbound.sftp import *
 import configparser
 import logging
 import sys
-from inbound import config
-from inbound import sftp
+import os
+from inbound import *
 
 
 def main(target):
+    """
+
+
+    """
+    # env setting
     env = configparser.ConfigParser()
-    env.read('env.ini')
+    try:
+        env.read(os.path.abspath('env.ini'))
+    except Exception as e:
+        print('not found env msg %s' % e)
 
-    # print(config['DEFAULT']['WorkingPath'])
-    # env = configparser.ConfigParser().read('env.ini')
     env_obj = env['DEFAULT']
-    # Logger Setting
-    config.Log(log_path=env_obj['ROOT_PATH'] + env_obj['LOG_PATH'])
-    # Properties Setting
-    prop = config.PropertiesGenerator(config_path=env_obj['ROOT_PATH'] + env_obj['CONFIG_PATH'], target=target)
+    aws_obj = env['AWS']
 
-    logger = logging.getLogger('myLogger')
-    logger.info('start get file to : ' + target)
-    logger.info('host: ' + prop.hostname + ' user: ' + prop.username)
+    # Logger Setting
+    Log(logging_config=os.path.abspath(env_obj['LOG_CONFIG_PATH']))
+    # Properties Setting
+    prop = PropertiesGenerator(config_path=os.path.abspath(env_obj['CONFIG_PATH']), target=target)
+
+    logger = logging.getLogger(__name__)
+    logger.info('start get file to : %s' % target)
+    logger.info('host: %s user: %s' % (prop.hostname, prop.username))
 
     try:
-        session = sftp.SftpSession(hostname=prop.hostname, username=prop.username, password=prop.password,
-                                   local_directory=prop.local_directory_path,
-                                   remote_directory=prop.remote_directory_path,
-                                   remote_backup_directory=prop.remote_backup_path)
 
-        children_dir = ['img', 'xml']
+        try:
+            session = SftpSession(hostname=prop.hostname, username=prop.username, password=prop.password,
+                                  local_directory=prop.local_directory_path,
+                                  remote_directory=prop.remote_directory_path,
+                                  remote_backup_directory=prop.remote_backup_path)
+        except Exception as e:
+            logger.error('Sftp Session을 연결하는데 문제가 발생했습니다. MSG: %s' % e)
+
+        try:
+            s3_session = S3Session(aws_access_key_id=aws_obj['AWS_ACCESS_KEY_ID'],
+                                   aws_secret_access_key=aws_obj['AWS_SECRET_ACCESS_KEY'],
+                                   region_name=aws_obj['REGION_NAME'],
+                                   bucket_name=aws_obj['BUCKET_NAME'])
+            # s3_session = S3Session()
+        except Exception as e:
+            logger.error('S3 Session을 연결하는데 문제가 발생했습니다. MSG: %s' % e)
 
         # 해당 년,월,일 까지만 스캔 e.g) 2020/01
         today = datetime.now().strftime('%Y/%m/%d')
 
-        for children in children_dir:
+        for children in prop.remote_child_path:
 
-            target_dir = prop.remote_directory_path + '/' + children + '/' + today
+            target_dir = '%s/%s/%s' % (prop.remote_directory_path, children, today)
 
-            logger.info('target 폴더: ' + target_dir)
+            logger.info('target 폴더: %s' % target_dir)
             if session.exist_remote_directory(target_dir):
                 # 타겟 폴더로 위치 변경.
                 session.sftp.cwd(target_dir)
                 # 현제 sftp session의 file list 가져오기.
                 file_items = session.file_list_recursive().items()
-                # logger.info("new file size: " + len(file_items))
 
-                # 새로운 파일들을 모두 가져옴.
-                session.get_all(file_items)
+                for folder, files in file_items:
+                    root_path = folder.replace(prop.remote_directory_path, '')
+
+                    for file in files:
+                        remote_file = '%s/%s' % (folder, file)
+                        bucket_key = "%s%s/%s" % (target, root_path, file)
+
+                        # s3_session.file_upload(file_obj=session.get_file_obj(remote_file_path=remote_file),
+                        #                        file_key=bucket_key)
+
+                        with session.sftp.open(remote_file, 'rb') as fl:
+                            s3_session.file_upload(file_obj=fl, file_key=bucket_key)
+
+                # session.get_all(file_items)
 
     except Exception as e:
-        logger.error(e)
+        logger.error('문제가 발생했습니다. MSG: %s' % e)
 
     finally:
         session.sftp.close()
 
 
 if __name__ == '__main__':
-    # print('ttttttt'+sys.argv[1])
+    # print('ttttttt'+sys.argv[0])
     main(target=sys.argv[1])

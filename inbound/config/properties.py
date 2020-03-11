@@ -1,5 +1,4 @@
 import json
-import configparser
 
 
 class PropertiesGenerator:
@@ -14,4 +13,5 @@ class PropertiesGenerator:
             self.password = self.env['password']
             self.local_directory_path = self.env['local_file_path']
             self.remote_directory_path = self.env['remote_file_path']
+            self.remote_child_path = self.env['remote_child_path']
             self.remote_backup_path = self.env['remote_backup_path']
