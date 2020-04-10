@@ -18,7 +18,7 @@
       "class": "logging.handlers.TimedRotatingFileHandler",
       "level": "DEBUG",
       "formatter": "simple",
-      "filename": "log/inbound.log",
+      "filename": "",
       "when" : "D",
       "encoding" : "utf-8",
       "interval" : 1

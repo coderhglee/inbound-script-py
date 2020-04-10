@@ -1,0 +1,25 @@
+[
+  {
+    "name": "yonhap",
+    "protocol": "local",
+    "local_file_path": "/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/yonhap",
+    "active": true
+  },
+  {
+    "name": "sports",
+    "protocol": "local",
+    "local_file_path": "/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/sports",
+    "active": true
+  },
+  {
+    "name": "newsis",
+    "protocol": "sftp",
+    "server": "172.31.12.47",
+    "port": "22",
+    "user": "",
+    "password": "",
+    "local_file_path": "/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/sports",
+    "remote_file_path": "/webstore/ns-home/newspaper/CMS_repository/data/sports/bak",
+    "active": true
+  }
+]
