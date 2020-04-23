@@ -1,9 +1,9 @@
 import logging
+import re
 import time
 from stat import S_ISREG
 
 import schedule
-import os
 
 from wires.client import SftpClient, S3Client
 
@@ -22,7 +22,9 @@ class SftpJob:
                                   aws_secret_access_key=self.aws_obj['AWS_SECRET_ACCESS_KEY'],
                                   region_name=self.aws_obj['REGION_NAME'])
 
-        schedule.every(30).seconds.do(self.handler)
+        self.bucket_name = "%s-%s" % (self.sftp_obj['name'], self.aws_obj['BUCKET_NAME'])
+        # TODO: 스케쥴 시간 config 추가
+        schedule.every(self.sftp_obj['polling']).seconds.do(self.handler)
         # schedule.every().hour.do(self.handler)
         # schedule.every().day.at("10:30").do(job)
         # schedule.every(5).to(10).minutes.do(job)
@@ -31,7 +33,6 @@ class SftpJob:
         # schedule.every().minute.at(":17").do(job)
 
     def handler(self):
-
         try:
             sftp_client = SftpClient(hostname=self.sftp_obj['server'], username=self.sftp_obj['user'],
                                      password=self.sftp_obj['password'],
@@ -41,13 +42,16 @@ class SftpJob:
 
             for attr in stats:
 
-                if S_ISREG(attr.st_mode):
+                # bool(re.match("^(.(.*\\.jpg$|.*\\.jpeg|.*\\.png))*$", "       test.jpg")
+                if S_ISREG(attr.st_mode) & bool(re.match(self.sftp_obj['file_patterns'], attr.filename)):
                     sftp_target_file_path = sftp_client.sftp.getcwd() + '/' + attr.filename
                     with sftp_client.sftp.open(sftp_target_file_path, 'rb') as fl:
-                        file_key = 'photo/' + attr.filename
 
-                        self.s3_client.file_obj_upload(bucket_name=self.aws_obj['BUCKET_NAME'], file_obj=fl,
-                                                       file_key=file_key)
+                        key = "%s/%s" % (self.sftp_obj['s3_key'], attr.filename)
+                        # file_key = 'photo/' + attr.filename
+
+                        self.s3_client.file_obj_upload(bucket_name=self.bucket_name, file_obj=fl,
+                                                       file_key=key)
 
                         sftp_client.del_file(sftp_target_file_path)
 
@@ -61,7 +65,7 @@ class SftpJob:
             # print('process id:', os.getpid())
             while True:
                 schedule.run_pending()
-                time.sleep(1)
+                time.sleep(5)
 
         except Exception as e:
             self.logger.info(e)

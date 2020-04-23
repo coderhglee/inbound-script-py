@@ -1,15 +1,15 @@
-from configparser import ConfigParser, ExtendedInterpolation
 import json
-import logging
-from logging import config
 import os
+from configparser import ConfigParser, ExtendedInterpolation
+
+from wires.log import Log
 
 
 class Setting:
     def __init__(self):
 
-        print('setting main')
-        print('process id:', os.getpid())
+        # print('setting main')
+        # print('process id:', os.getpid())
         """
         Global Setting init
         """
@@ -27,4 +27,6 @@ class Setting:
 
         with open(self.env['DEFAULT']['CONFIG_PATH'], 'rt') as f:
             self.target_config_json = json.load(f)
-        # print('setting ok')
+
+        Log(config_path=self.env['DEFAULT']['LOG_CONFIG_PATH'],
+            file_path="%s%s" % (self.env['DEFAULT']['LOG_PATH'], 'wires.logs'))

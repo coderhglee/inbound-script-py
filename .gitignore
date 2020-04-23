@@ -139,7 +139,7 @@ env.ini
 env-*
 
 get/
-log/
+logs/
 temp/
 .idea
 

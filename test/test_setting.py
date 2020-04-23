@@ -6,7 +6,7 @@ class TestSetting(TestCase):
     def test_json_logging(self):
         with open('/Users/hakgyun/repository_chosunbiz/inbound-script-py/config/logging.json', 'rt') as f:
             config_json = json.load(f)
-            config_json['handlers']['file_handler']['filename'] = 'test.log'
+            config_json['handlers']['file_handler']['filename'] = 'test.logs'
             # print(config_json)
         with open('/Users/hakgyun/repository_chosunbiz/inbound-script-py/config/config.json', 'rt') as f:
             target_config_json = json.load(f)

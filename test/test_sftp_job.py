@@ -1,5 +1,6 @@
-import unittest
 import os
+import re
+import unittest
 from stat import *
 from unittest import TestCase
 
@@ -62,12 +63,14 @@ class TestSftpJob(TestCase):
         #     Bucket='newsis-inbound-sandbox-chosun',
         #     Key='photo/test2.xml')
 
-        print(os.path.basename('/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/tt.log'))
+        print(os.path.basename('/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/tt.logs'))
 
         # with open('/Users/hakgyun/repository_chosunbiz/inbound-script-py/temp/202003100100074530004568.xml',
         #           'wb') as fl:
         #     print(fl.read())
 
+    def test_file_pattern(self):
+        print(bool(re.match("^(.(.*\\.jpg$|.*\\.jpeg|.*\\.png))*$", "       test.jpg")))
 
 
 if __name__ == '__main__':

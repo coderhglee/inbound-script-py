@@ -3,23 +3,30 @@
     "name": "yonhap",
     "protocol": "local",
     "local_file_path": "/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/yonhap",
+    "file_patterns" : ["*.jpg", "*.jpeg", "*.png"],
+    "s3_key" : "photo",
     "active": true
   },
   {
     "name": "sports",
     "protocol": "local",
     "local_file_path": "/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/sports",
+    "file_patterns" : ["*.jpg", "*.jpeg", "*.png"],
+    "s3_key" : "photo",
     "active": true
   },
   {
     "name": "newsis",
     "protocol": "sftp",
-    "server": "172.31.12.47",
+    "server": "20.0.11.11",
     "port": "22",
-    "user": "",
+    "user": "master",
     "password": "",
     "local_file_path": "/Users/hakgyun/repository_chosunbiz/inbound-script-py/get/sports",
-    "remote_file_path": "/webstore/ns-home/newspaper/CMS_repository/data/sports/bak",
+    "remote_file_path": "/arcstore/ns-home/newspaper/data/newswork/newsis_image/data",
+    "file_patterns" : "^(.(.*\\.jpg$|.*\\.jpeg|.*\\.png))*$",
+    "s3_key" : "photo",
+    "polling" : 30,
     "active": true
   }
 ]
