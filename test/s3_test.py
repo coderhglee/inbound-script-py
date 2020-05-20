@@ -6,7 +6,7 @@ import os
 class MyTestCase(unittest.TestCase):
     def test_something(self):
         self.assertEqual(False, False)
-        print(os.path.abspath('log'))
+        print(os.path.abspath('logs'))
 
     def test_s3(self):
         # S3 Client 생성

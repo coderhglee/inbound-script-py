@@ -3,7 +3,10 @@ import configparser
 import logging
 import sys
 import os
-from inbound import *
+from inbound import Log
+from inbound import PropertiesGenerator
+from inbound import SftpSession
+from inbound import S3Session
 
 
 def main(target):
